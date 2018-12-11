@@ -5,12 +5,13 @@ import java.util.*;
 /**
  * Created by Sergey Murskiy on 16.10.2018.
  */
-public class CashMachine {
-    public static ArrayList<Integer> newCombination;
-    public static int[] arrayOfNumbersInclusion;
-    public static int[] maxInclusion;
 
-    public static boolean rise(int index) {
+public class CashMachine {
+    private static ArrayList<Integer> newCombination = new ArrayList<Integer>();
+    private static int[] arrayOfNumbersInclusion;
+    private static int[] maxInclusion;
+
+    private static boolean nextCombination(int index) {
         if (index == 0 && arrayOfNumbersInclusion[0] == maxInclusion[0]) {
             return true;
         }
@@ -31,107 +32,82 @@ public class CashMachine {
         return false;
     }
 
-    public static ArrayList<Integer> addCombination(ArrayList<Integer> exchange) {
+    private static ArrayList<Integer> addCombination(int[] exchange) {
         newCombination = new ArrayList<Integer>();
         for (int i = arrayOfNumbersInclusion.length - 1; i >=0; i--) {
             for (int j = 0; j < arrayOfNumbersInclusion[i]; j++) {
-                newCombination.add(exchange.get(i));
+                newCombination.add(exchange[i]);
             }
         }
         return newCombination;
     }
 
-    public static void checkValue(int value) {
-        if (value <= 0) {
-            throw new InputMismatchException();
+    private static ArrayList<Integer> checkTrivialCombination(int banknote, int[] exchange) {
+        newCombination = new ArrayList<Integer>();
+        if (exchange[0] == exchange[exchange.length - 1]) {
+            for (int i = 0; i < banknote / exchange[0]; i++) {
+                newCombination.add(exchange[0]);
+            }
+            return newCombination;
+        }
+        return null;
+    }
+
+    private static void findMaxInclusion(int banknote, int[] exchange) {
+        for (int i = 0; i < exchange.length; i++) {
+            maxInclusion[i] = banknote / exchange[i];
         }
     }
 
-    public static ArrayList<ArrayList> cashMachine(int banknote, ArrayList<Integer> exchange) {
-        ArrayList<ArrayList> result = new ArrayList<ArrayList>();
-        ArrayList<Integer> newCombination = new ArrayList<Integer>();
-        Collections.sort(exchange);
-        if (exchange.get(0) > banknote) {
-            return null;
-        }
-        if (exchange.get(0) == exchange.get(exchange.size() - 1)) {
-            for (int i = 0; i < banknote / exchange.get(0); i++) {
-                newCombination.add(exchange.get(0));
-            }
-            result.add(newCombination);
-            return result;
-        }
-        while (exchange.get(exchange.size() - 1) >= banknote) {
-            if (exchange.get(exchange.size() - 1) == banknote) {
-                newCombination.clear();
-                newCombination.add(exchange.get(exchange.size() - 1));
-            }
-            exchange.remove(exchange.size() - 1);
-        }
-        arrayOfNumbersInclusion = new int[exchange.size()];
-        maxInclusion = new int[exchange.size()];
-        for (int i = 0; i < exchange.size(); i++) {
-            maxInclusion[i] = banknote / exchange.get(i);
-        }
+    private static ArrayList<ArrayList<Integer>> findCombinations(int banknote, int[] exchange) {
+        ArrayList<ArrayList<Integer>> result = new ArrayList<ArrayList<Integer>>();
         int sum;
         boolean isChange;
         boolean isEnd = false;
         while(!isEnd) {
             sum = 0;
             isChange = false;
-            for (int i = 0; i < exchange.size(); i++) {
-                sum += arrayOfNumbersInclusion[i] * exchange.get(i);
+            for (int i = 0; i < exchange.length; i++) {
+                sum += arrayOfNumbersInclusion[i] * exchange[i];
                 if (sum == banknote) {
                     result.add(addCombination(exchange));
-                    isEnd = rise(i);
+                    isEnd = nextCombination(i);
                     isChange = true;
                     break;
                 }
-                if (i < exchange.size() - 1 && banknote - sum < arrayOfNumbersInclusion[i+1] * exchange.get(i+1)) {
-                    isEnd = rise(i+1);
+                if (i < exchange.length - 1 && banknote - sum < arrayOfNumbersInclusion[i+1] * exchange[i+1]) {
+                    isEnd = nextCombination(i+1);
                     isChange = true;
                     break;
                 }
             }
             if (!isChange) {
-                isEnd = rise(arrayOfNumbersInclusion.length);
-            }
+                isEnd = nextCombination(arrayOfNumbersInclusion.length); }
         }
         return result;
     }
-    public static void main(String[] args) {
-        Scanner input = new Scanner(System.in);
-        System.out.println("Введите купюру");
-        int banknote = 0;
-        try {
-            banknote = input.nextInt();
-            checkValue(banknote);
-        } catch (InputMismatchException e) {
-            System.out.println("Введено не допустимое значение");
-            System.exit(-1);
-        }
-        int size = 0;
-        System.out.println("Введите число купюр размена");
-        try {
-            size = input.nextInt();
-            checkValue(size);
-        } catch (InputMismatchException e) {
-            System.out.println("Введено не допустимое значение");
-            System.exit(-1);
-        }
-        ArrayList<Integer> exchange = new ArrayList<Integer>();
-        System.out.println("Введите купюры размена");
-        try {
-            for (int i = 0; i < size; i++) {
-                exchange.add(input.nextInt());
-                checkValue(exchange.get(i));
-            }
-        } catch (InputMismatchException e) {
-            System.out.println("Введено недопустимое значение");
-            System.exit(-1);
-        }
 
-        ArrayList<ArrayList> result = cashMachine(banknote, exchange);
+    public static ArrayList<ArrayList<Integer>> exchangeSumToCoins(int banknote, int[] exchange) {
+        ArrayList<ArrayList<Integer>> result = new ArrayList<ArrayList<Integer>>();
+        Arrays.sort(exchange);
+        ArrayList<Integer> trivialCombination = checkTrivialCombination(banknote, exchange);
+        if (trivialCombination != null) {
+            result.add(trivialCombination);
+            return result;
+        }
+        arrayOfNumbersInclusion = new int[exchange.length];
+        maxInclusion = new int[exchange.length];
+        findMaxInclusion(banknote, exchange);
+        return findCombinations(banknote, exchange);
+    }
+
+    public static void checkInputValue(int value) {
+        if (value <= 0) {
+            throw new InputMismatchException();
+        }
+    }
+
+    public static void printResult(ArrayList<ArrayList<Integer>> result) {
         if (result != null) {
             System.out.println("Найдено " + result.size() + " комбинаций");
             for (int i = 0; i < result.size(); i++) {
@@ -143,5 +119,39 @@ public class CashMachine {
         } else {
             System.out.println("Найдено 0 комбинаций");
         }
+    }
+
+    public static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+        System.out.println("Введите купюру");
+        int banknote = 0;
+        try {
+            banknote = input.nextInt();
+            checkInputValue(banknote);
+        } catch (InputMismatchException e) {
+            System.out.println("Введено не допустимое значение");
+            System.exit(-1);
+        }
+        int size = 0;
+        System.out.println("Введите число купюр размена");
+        try {
+            size = input.nextInt();
+            checkInputValue(size);
+        } catch (InputMismatchException e) {
+            System.out.println("Введено не допустимое значение");
+            System.exit(-1);
+        }
+        int[] exchange = new int[size];
+        System.out.println("Введите купюры размена");
+        try {
+            for (int i = 0; i < size; i++) {
+                exchange[i] = input.nextInt();
+                checkInputValue(exchange[i]);
+            }
+        } catch (InputMismatchException e) {
+            System.out.println("Введено недопустимое значение");
+            System.exit(-1);
+        }
+        printResult(exchangeSumToCoins(banknote, exchange));
     }
 }
